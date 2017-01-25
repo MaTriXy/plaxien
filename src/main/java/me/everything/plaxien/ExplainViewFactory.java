@@ -1,11 +1,15 @@
     package me.everything.plaxien;
 
     import android.content.Context;
+    import android.content.Intent;
+    import android.util.Log;
     import android.view.LayoutInflater;
     import android.view.View;
     import android.widget.ImageView;
     import android.widget.LinearLayout;
     import android.widget.TextView;
+
+    import java.net.URISyntaxException;
 
     /**
      * A factory that generates Explain views from Explain trees
@@ -39,7 +43,7 @@
             mExplainViewStyle.applyTitleStyle(titleTextView);
             titleTextView.setText(tree.title);
 
-            LinearLayout ll = (LinearLayout)ret.findViewById(R.id.secion_items);
+            LinearLayout ll = (LinearLayout)ret.findViewById(R.id.section_items);
 
             for (Explain.BaseNode root : tree.children) {
 
@@ -143,14 +147,34 @@
 
         /**
          * Render a value view for a value node
-         * @param node
-         * @return
          */
         private View getValueView(Explain.ValueNode node) {
             View view = mInflater.inflate(R.layout.explain_value, null);
             ValueNodeHolder holder = new ValueNodeHolder(view);
             holder.titleView.setText(node.title);
             holder.valueView.setText(node.toString());
+
+            // If this node has a click intent uri, we try to recreate the intent and then start an activity from it
+            if (node.onClickUri != null) {
+
+                try {
+                    final Intent i = Intent.parseUri(node.onClickUri, 0);
+
+                    View.OnClickListener listener = new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            mContext.startActivity(i);
+                        }
+                    };
+
+                    holder.valueView.setOnClickListener(listener);
+                    holder.titleView.setOnClickListener(listener);
+                    view.setOnClickListener(listener);
+
+                } catch (URISyntaxException e) {
+                    Log.e("ExplainViewFactory", "Error parsing intent uri: " + node.onClickUri, e);
+                }
+            }
 
             return view;
         }
